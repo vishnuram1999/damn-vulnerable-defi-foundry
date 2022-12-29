@@ -97,3 +97,11 @@ contract Selfie is Test {
         assertEq(dvtSnapshot.balanceOf(address(selfiePool)), 0);
     }
 }
+
+// Attack Steps:
+// 1. Get the flash loan as an attacker  from pool which will execute the functionCall and execute the recevieToken function in attack contract
+// 2. Using the flashloan to execute the Queueaction function in governance contract.
+// 3. We have to queue the drainAllFunds function in pool to be executed later because it only accepts transsaction calls from governance contract
+// 4. Transfer back the flash loan to pool.
+// 5. Execute the executeAction function to drain all the funds from the pool
+// 6. Finally transfer the tokens to attacker from Attack contract.
